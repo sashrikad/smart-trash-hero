@@ -1,0 +1,13 @@
+mutation createSmart_trash_v0($createsmart_trash_v0input: CreateSmart_trash_v0Input!) {
+  createSmart_trash_v0(input: $createsmart_trash_v0input) {
+    deviceId
+    timestamp
+    distance
+    magnitude
+    battery
+  }
+}
+
+query listSmart_trash_v0s {
+  __typename ## Placeholder value
+}
