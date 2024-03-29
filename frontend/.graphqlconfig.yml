@@ -1,0 +1,19 @@
+projects:
+  smarttrash-appsync-api:
+    schemaPath: src/graphql/schema.json
+    includes:
+      - src/graphql/**/*.ts
+    excludes:
+      - ./amplify/**
+      - src/API.ts
+    extensions:
+      amplify:
+        codeGenTarget: typescript
+        generatedFileName: src/API.ts
+        docsFilePath: src/graphql
+        region: us-east-1
+        apiId: lxy4fheo6fchxbmod6ytghxoyu
+        maxDepth: 2
+extensions:
+  amplify:
+    version: 3

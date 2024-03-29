@@ -1,0 +1,86 @@
+type Query {
+  getDevice(id: ID!): SmartTrashDevice @aws_api_key @aws_iam
+  listDevices: [SmartTrashDevice] @aws_api_key @aws_iam
+  listDeviceLogs(deviceId: String): [SmartTrashDeviceLog] @aws_api_key @aws_iam
+  getOptimizedRoute(orgId: String!): OptimizedRoute @aws_api_key @aws_iam
+}
+
+type Mutation {
+  updateDevice(input: SmartTrashDeviceInput): SmartTrashDevice
+  updateDeviceLog(input: SmartTrashDeviceLogInput): SmartTrashDeviceLog
+  updateOptimizedRoute(input: OptimizedRouteInput): OptimizedRoute
+  optimizeRoute(orgId: String): OptimizedRoute
+}
+
+type Subscription {
+  onUpdateDevice(id: ID): SmartTrashDevice @aws_subscribe(mutations: ["updateDevice"])
+  onUpdateOptimizedRoute(orgId: String): OptimizedRoute @aws_subscribe(mutations: ["updateOptimizedRoute"])
+}
+
+type SmartTrashDevice {
+  id: String!
+  orgId: String
+  givenName: String
+  vol: Float
+  remaining: Float
+  acc: Float
+  accThresold: Float
+  fallen: Boolean
+  dist: Float
+  bat: Float
+  lat: Float
+  lng: Float
+  ts: AWSTimestamp
+}
+
+input SmartTrashDeviceInput {
+  id: String!
+  orgId: String
+  givenName: String
+  vol: Float
+  remaining: Float
+  acc: Float
+  accThresold: Float
+  fallen: Boolean
+  dist: Float
+  bat: Float
+  lat: Float
+  lng: Float
+  ts: AWSTimestamp
+}
+
+type SmartTrashDeviceLog {
+  deviceId: String!
+  ts: Int!
+  acc: Float
+  dist: Float
+  bat: Float
+  ttl: AWSTimestamp
+}
+
+input SmartTrashDeviceLogInput {
+  deviceId: String!
+  ts: Int!
+  acc: Float
+  dist: Float
+  bat: Float
+  ttl: AWSTimestamp
+}
+
+type OptimizedRoute {
+  orgId: String!
+  optimized: Boolean
+  distance: Float
+  durationInSec: Int
+  ts: AWSTimestamp
+  routes: [String]
+}
+
+input OptimizedRouteInput {
+  orgId: String!
+  optimized: Boolean
+  distance: Float
+  durationInSec: Int
+  ts: AWSTimestamp
+  routes: [String]
+}
