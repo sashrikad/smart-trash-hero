@@ -8,6 +8,7 @@ interface AuthConstructProps extends StackProps {}
 
 export class AuthConstruct extends Construct {
   unauthRole: IRole;
+  authRole: IRole;
 
   constructor(scope: Construct, id: string, _props: AuthConstructProps) {
     super(scope, id);
@@ -35,10 +36,10 @@ export class AuthConstruct extends Construct {
 
     const identityPool = new IdentityPool(this, "IdentityPool", {
       authenticationProviders: {
-        userPools: [new UserPoolAuthenticationProvider({ userPool })],
+        userPools: [new UserPoolAuthenticationProvider({ userPool, userPoolClient })],
       },
     });
-    const { unauthenticatedRole, identityPoolId } = identityPool;
+    const { unauthenticatedRole, authenticatedRole, identityPoolId } = identityPool;
 
     NagSuppressions.addResourceSuppressions(identityPool, [
       {
@@ -46,33 +47,7 @@ export class AuthConstruct extends Construct {
         reason: "Application uses unauthenticated access (i.e. guest) only, so this setting is needed.",
       },
     ]);
-
-    identityPool.authenticatedRole.attachInlinePolicy(
-      new Policy(this, "locationService", {
-        statements: [
-          new PolicyStatement({
-            actions: ["geo:GetMapGlyphs", "geo:GetMapSprites", "geo:GetMapStyleDescriptor", "geo:GetMapTile"],
-            resources: [`arn:aws:geo:${Stack.of(this).region}:${Stack.of(this).account}:map/${application_name}Map`],
-          }),
-          new PolicyStatement({
-            actions: ["geo:ListGeofences", "geo:BatchPutGeofence", "geo:BatchDeleteGeofence"],
-            resources: [
-              `arn:aws:geo:${Stack.of(this).region}:${
-                Stack.of(this).account
-              }:geofence-collection/${application_name}GeofenceCollection`,
-            ],
-          }),
-          new PolicyStatement({
-            actions: ["geo:CalculateRoute"],
-            resources: [
-              `arn:aws:geo:${Stack.of(this).region}:${
-                Stack.of(this).account
-              }:route-calculator/${application_name}RouteCalculator`,
-            ],
-          }),
-        ],
-      })
-    );
+    this.authRole = authenticatedRole;
 
     new CfnOutput(this, "IdentityPoolId", {
       value: identityPoolId,
@@ -85,5 +60,9 @@ export class AuthConstruct extends Construct {
     new CfnOutput(this, "AppClientId", {
       value: userPoolClient.userPoolClientId,
     });
+
+    // new CfnOutput(this, "AppClientId", {
+    //   value: identityPool.identityPoolName,
+    // });
   }
 }

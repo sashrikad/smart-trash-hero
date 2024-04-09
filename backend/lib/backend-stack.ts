@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import { Stack } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { Lambda } from "./lambda";
 import { IotSql, TopicRule } from "@aws-cdk/aws-iot-alpha";
@@ -7,7 +8,7 @@ import { CloudWatchLogsAction, LambdaFunctionAction } from "@aws-cdk/aws-iot-act
 import { AppSyncConstruct } from "./appsync-construct";
 import { AuthConstruct } from "./auth-construct";
 import { aws_location as location } from "aws-cdk-lib";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Policy, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export class BackendStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -27,12 +28,37 @@ export class BackendStack extends cdk.Stack {
       },
     });
 
-    //create IoT Rule
+    const cfnMap = new location.CfnMap(this, `${application_name}_map`, {
+      configuration: {
+        style: "VectorEsriStreets",
+      },
+      mapName: `${application_name}_map`,
+    });
 
     const cfnRouteCalculator = new location.CfnRouteCalculator(this, `${application_name}_route_calculator`, {
       calculatorName: `${application_name}_route_calculator`,
       dataSource: "Esri",
     });
+
+    authConstruct.authRole.attachInlinePolicy(
+      new Policy(this, "locationService", {
+        statements: [
+          new PolicyStatement({
+            actions: ["geo:GetMapGlyphs", "geo:GetMapSprites", "geo:GetMapStyleDescriptor", "geo:GetMapTile"],
+            resources: [`arn:aws:geo:${cdk.Stack.of(this).region}:${Stack.of(this).account}:map/${cfnMap.mapName}`],
+          }),
+
+          new PolicyStatement({
+            actions: ["geo:CalculateRoute"],
+            resources: [
+              `arn:aws:geo:${Stack.of(this).region}:${Stack.of(this).account}:route-calculator/${
+                cfnRouteCalculator.calculatorName
+              }`,
+            ],
+          }),
+        ],
+      })
+    );
 
     // CloudWatch Role for IoT Core error logging
     const logGroup = new LogGroup(this, "ErrorLogGroup", {
@@ -71,18 +97,12 @@ export class BackendStack extends cdk.Stack {
       },
     });
 
+    //create IoT Rule
     new TopicRule(this, `${application_name}_topic_rule`, {
       topicRuleName: `${application_name}_topic_rule`,
       sql: IotSql.fromStringAsVer20160323(`SELECT topic(2) as device_id, * FROM 'smarttrash/#'`),
       actions: [new LambdaFunctionAction(ruleActionLambda.lambda)],
       errorAction: new CloudWatchLogsAction(logGroup),
-    });
-
-    const cfnMap = new location.CfnMap(this, `${application_name}_map`, {
-      configuration: {
-        style: "VectorEsriStreets",
-      },
-      mapName: `${application_name}_map`,
     });
   }
 }
